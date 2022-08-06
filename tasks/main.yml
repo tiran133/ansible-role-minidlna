@@ -1,0 +1,119 @@
+---
+# tasks file for minidlna
+
+- name: Gather the package facts
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Install build required packages
+  become: yes
+  package:
+    name: "{{ packages }}"
+    update_cache: yes
+    state: present
+
+- name: Download Minidlna source from sourceforge
+  get_url:
+    url: "https://sourceforge.net/projects/minidlna/files/minidlna/{{ version }}/minidlna-{{ version }}.tar.gz"
+    dest: /home/alex
+    mode: "0664"
+
+- name: Extract the Minidlna archive file on the remote node
+  unarchive:
+    src: "/home/alex/minidlna-{{ version }}.tar.gz"
+    dest: /home/alex/
+    remote_src: yes
+    creates: "/home/alex/minidlna-{{ version }}"
+  register: minidlna_source_unpack
+
+- name: Configuring Minidlna source
+  command: ./configure
+  args:
+    chdir: "/home/alex/minidlna-{{ version }}"
+  when: minidlna_source_unpack.changed
+  register: minidlna_configure
+
+- name: Compiling & Installing Minidlna
+  become: yes
+  shell: make && make install
+  args:
+    chdir: "/home/alex/minidlna-{{ version }}"
+  when: minidlna_configure.changed
+  register: minidlna_install
+
+- name: Copying Minidlna conf file
+  become: yes
+  copy:
+    src: "/home/alex/minidlna-{{ version }}/minidlna.conf"
+    dest: /etc/minidlna.conf
+    remote_src: yes
+  when: minidlna_install.changed
+
+- name: Copying Minidlna service script file
+  become: yes
+  copy:
+    src: "/home/alex/minidlna-{{ version }}/linux/minidlna.init.d.script"
+    dest: /etc/init.d/minidlna
+    remote_src: yes
+  when: minidlna_install.changed
+
+- name: Copying Minidlna service script file
+  become: yes
+  copy:
+    src: "/home/alex/minidlna-{{ version }}/linux/minidlna.init.d.script"
+    dest: /etc/init.d/minidlna
+    remote_src: yes
+    mode: "0755"
+  when: minidlna_install.changed
+
+- name: Cleanup
+  become: yes
+  shell: make clean && rm config.log
+  args:
+    chdir: "/home/alex/minidlna-{{ version }}"
+  when: minidlna_install.changed
+
+- name: Start Minidlna service and enable at boot minidlna, if not started
+  become: yes
+  systemd:
+    name: minidlna
+    state: started
+    enabled: yes
+
+- name: Copy template conf file
+  become: yes
+  template:
+    src: templates/minidlna.conf.j2
+    dest: "/etc/minidlna.conf"
+    mode: 0644
+  register: minidlna_config
+
+# - name: Update Minidlna configuration
+#   become: yes
+#   register: minidlna_config
+#   :
+#     dest: "/etc/minidlna.conf"
+#     regexp: "{{ item.regexp }}"
+#     line: "{{ item.line }}"
+#     state: present
+#     mode: 0644
+#   with_items:
+#     - regexp: "^#?port"
+#       line: "port={{ minidlna_port }}"
+#     - regexp: "^#?friendly_name"
+#       line: "friendly_name={{ minidlna_server_name }}"
+
+- name: Restart Minidlna service on configuration change
+  become: yes
+  systemd:
+    name: minidlna
+    state: restarted
+    enabled: yes
+  when: minidlna_config.changed
+
+- name: Open port if necessary
+  become: yes
+  ufw:
+    rule: allow
+    port: "{{ minidlna_port }}"
+  when: "'ufw' in ansible_facts.packages"

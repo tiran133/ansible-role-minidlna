@@ -1,0 +1,19 @@
+galaxy_info:
+  author: Tiran
+  description: "Downloads and compiles the latest of minidlna on Debian linux"
+  company: ""
+
+  license: "license (BSD, MIT)"
+
+  min_ansible_version: 2.1
+
+  platforms:
+    - name: Debian
+      versions:
+        - wheezy
+  galaxy_tags:
+  - Debian
+  - minidlna
+
+dependencies:
+  - community.general

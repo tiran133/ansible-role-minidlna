@@ -1,0 +1,22 @@
+---
+# vars file for minidlna
+
+#
+# Build Packages
+#
+packages:
+  - make
+  - gcc
+  - build-essential
+  - libavutil-dev
+  - libavcodec-dev
+  - libavformat-dev
+  - libjpeg-dev
+  - libjpeg-dev
+  - libsqlite3-dev
+  - libexif-dev
+  - libid3tag0-dev
+  - libogg-dev
+  - libvorbis-dev
+  - libflac-dev
+  - gettext
