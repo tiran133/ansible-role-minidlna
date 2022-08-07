@@ -10,7 +10,7 @@ galaxy_info:
   platforms:
     - name: Debian
       versions:
-        - wheezy
+        - all
   galaxy_tags:
   - Debian
   - minidlna
